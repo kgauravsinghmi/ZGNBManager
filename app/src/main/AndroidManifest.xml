@@ -34,6 +34,11 @@
         </activity>
 
         <activity
+            android:name="com.zengge.nbmanager.ModernFileBrowserActivity"
+            android:configChanges="orientation|keyboardHidden"
+            android:label="@string/file_browser_saf" />
+
+        <activity
             android:name="com.zengge.nbmanager.ZipManagerMain"
             android:configChanges="orientation|keyboardHidden"
             android:label="@string/zip_editor" />
