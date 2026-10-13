@@ -40,8 +40,15 @@ To build this project successfully on a machine, set up the local Android SDK an
 4. If Android Studio does not auto-detect the SDK, create a `local.properties` file in the project root with your machine-specific paths:
 
    ```properties
-   sdk.dir=/path/to/Android/Sdk
-   ndk.dir=/path/to/Android/Sdk/ndk/25.2.9519653
+   sdk.dir=E:/zengxianxi/androidsdk
+   ndk.dir=E:/zengxianxi/androidsdk/ndk/25.2.9519653
+   ```
+
+   If your Android SDK uses a legacy `ndk-bundle` folder instead of a versioned folder, the fallback is:
+
+   ```properties
+   sdk.dir=E:/zengxianxi/androidsdk
+   ndk.dir=E:/zengxianxi/androidsdk/ndk-bundle
    ```
 
 5. Ensure the project is using JDK 17 in Android Studio.
