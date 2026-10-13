@@ -1,6 +1,6 @@
 # ZGNBManager
 
-ZGNBManager is an Android application for APK and archive analysis, file management, and reverse-engineering workflows. It is designed to help inspect APK/ZIP contents, browse DEX classes and methods, work with code/text assets, and manage extracted files on Android devices.
+ZGNBManager is an Android application for APK and archive analysis, file management, and reverse-engineering workflows. It is designed to help inspect APK/ZIP contents, browse DEX classes and methods, work with resources, and analyze native and extracted content in a single project-focused tool.
 
 ## Features
 
@@ -10,22 +10,25 @@ ZGNBManager is an Android application for APK and archive analysis, file managem
 - Text and code viewing/editing support
 - Native and Android resource-related tooling
 - File handling utilities for extracted content
+- Deobfuscation and mapping export scaffolding for reverse-engineering workflows
 
 ## Project structure
 
 - `app/` — Android application module
-- `app/src/main/` — source code and Android manifest
+- `app/src/main/` — Android source code, resources, and manifest
 - `app/libs/` — bundled libraries used by the project
 - `build.gradle` — root Gradle configuration
 - `settings.gradle` — Gradle project settings
+- `gradle.properties` — AndroidX and Gradle JVM settings
 - `gradlew` / `gradlew.bat` — Gradle wrapper scripts
 
 ## Prerequisites
 
-- Android Studio
-- JDK 8 or compatible Java version
-- Android SDK with API 28
-- Android NDK (required by the native build settings in the app module)
+- Android Studio (current stable release recommended)
+- JDK 17 or compatible Java version
+- Android SDK with API 34 installed
+- Android NDK (required by the native build configuration in the app module)
+- Git
 
 ## Building
 
@@ -38,9 +41,11 @@ ZGNBManager is an Android application for APK and archive analysis, file managem
 
 2. Open the project in Android Studio.
 
-3. Allow Gradle to sync and download dependencies.
+3. Let Gradle sync and download dependencies.
 
-4. Build the debug APK:
+4. Ensure `local.properties` points to your Android SDK installation if it is not auto-detected.
+
+5. Build the debug APK:
 
    ```bash
    ./gradlew assembleDebug
@@ -52,15 +57,17 @@ ZGNBManager is an Android application for APK and archive analysis, file managem
    gradlew.bat assembleDebug
    ```
 
-5. Install the generated APK on an emulator or Android device.
+6. Install the generated APK on an emulator or Android device.
 
 ## Notes
 
-This project is for Android reverse-engineering and file analysis workflows. Use it responsibly and only in compliance with applicable laws, platform policies, and software licensing requirements.
+This project is intended for Android reverse-engineering, APK analysis, and software inspection workflows. Use it responsibly and only in compliance with applicable laws, platform policies, and software licensing requirements.
+
+The project has been modernized for current Android tooling and uses AndroidX-based Gradle settings. Some legacy dependencies may still require cleanup depending on the target environment and local SDK setup.
 
 ## Contributing
 
-Contributions are welcome. Please open an issue or submit a pull request with a clear description of the change and testing notes.
+Contributions are welcome. Please read `CONTRIBUTING.md` before opening a pull request or issue.
 
 ## License
 
