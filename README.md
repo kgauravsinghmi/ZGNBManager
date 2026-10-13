@@ -30,6 +30,23 @@ ZGNBManager is an Android application for APK and archive analysis, file managem
 - Android NDK (required by the native build configuration in the app module)
 - Git
 
+## Local Android Studio setup
+
+To build this project successfully on a machine, set up the local Android SDK and NDK before opening the project in Android Studio.
+
+1. Install Android Studio.
+2. Install the Android SDK platform for API 34.
+3. Install a compatible Android NDK version (for example, NDK 25.x).
+4. If Android Studio does not auto-detect the SDK, create a `local.properties` file in the project root with your machine-specific paths:
+
+   ```properties
+   sdk.dir=/path/to/Android/Sdk
+   ndk.dir=/path/to/Android/Sdk/ndk/25.2.9519653
+   ```
+
+5. Ensure the project is using JDK 17 in Android Studio.
+6. Sync the project and let Gradle download dependencies.
+
 ## Building
 
 1. Clone the repository:
