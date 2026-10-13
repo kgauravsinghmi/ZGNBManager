@@ -1,2 +1,67 @@
 # ZGNBManager
-A useful tool to crack apk and manage file
+
+ZGNBManager is an Android application for APK and archive analysis, file management, and reverse-engineering workflows. It is designed to help inspect APK/ZIP contents, browse DEX classes and methods, work with code/text assets, and manage extracted files on Android devices.
+
+## Features
+
+- APK and ZIP inspection and management
+- DEX class, method, and field browsing
+- Search for classes and methods within APKs
+- Text and code viewing/editing support
+- Native and Android resource-related tooling
+- File handling utilities for extracted content
+
+## Project structure
+
+- `app/` — Android application module
+- `app/src/main/` — source code and Android manifest
+- `app/libs/` — bundled libraries used by the project
+- `build.gradle` — root Gradle configuration
+- `settings.gradle` — Gradle project settings
+- `gradlew` / `gradlew.bat` — Gradle wrapper scripts
+
+## Prerequisites
+
+- Android Studio
+- JDK 8 or compatible Java version
+- Android SDK with API 28
+- Android NDK (required by the native build settings in the app module)
+
+## Building
+
+1. Clone the repository:
+
+   ```bash
+   git clone https://github.com/kgauravsinghmi/ZGNBManager.git
+   cd ZGNBManager
+   ```
+
+2. Open the project in Android Studio.
+
+3. Allow Gradle to sync and download dependencies.
+
+4. Build the debug APK:
+
+   ```bash
+   ./gradlew assembleDebug
+   ```
+
+   On Windows:
+
+   ```powershell
+   gradlew.bat assembleDebug
+   ```
+
+5. Install the generated APK on an emulator or Android device.
+
+## Notes
+
+This project is for Android reverse-engineering and file analysis workflows. Use it responsibly and only in compliance with applicable laws, platform policies, and software licensing requirements.
+
+## Contributing
+
+Contributions are welcome. Please open an issue or submit a pull request with a clear description of the change and testing notes.
+
+## License
+
+This project is licensed under the MIT License. See the `LICENSE` file for details.
