@@ -17,7 +17,7 @@ import java.io.File;
 import java.io.IOException;
 
 import com.zengge.nbmanager.R;
-import android.support.v7.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatActivity;
 
 public class AudioPlayer extends AppCompatActivity {
     MediaPlayer mPlayer = null;
