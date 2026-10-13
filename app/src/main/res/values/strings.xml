@@ -28,7 +28,8 @@
     <string name="is_delete">Delete %s ?</string>
     <string name="deleted">Deleted</string>
     <string name="copy">Copy</string>
-    <string name="copy_to">Copy to clipboard\n</string>
+    <string name="copy_to">Copy to clipboard
+</string>
     <string name="copy_message">File %s already exists. Overwrite?</string>
     <string name="copy_exception">File copy error</string>
     <string name="copy_nothing">No files</string>
@@ -36,27 +37,191 @@
     <string name="copied">Copied</string>
     <string name="over_write">Overwrite</string>
     <string name="cut">Cut</string>
-    <string name="cut_to">Copy to clipboard\n</string>
+    <string name="cut_to">Copy to clipboard
+</string>
     <string name="paste">Paste</string>
     <string name="permission">Permissions</string>
     <string name="file_browser">File browser</string>
-    <string name="file_browser_saf">Modern file browser</string>
     <string name="directory_exists">Folder "%s" already exists.</string>
     <string name="directory_created">Folder "%s" created.</string>
     <string name="directory_cannot_create">Unable to create folder "%s".</string>
     <string name="directory_empty">Folder name is empty</string>
     <string name="exit">Exit</string>
     <string name="wait">Please wait...</string>
-    <string name="browse_root_folder">Browse folder</string>
-    <string name="create_folder">Create folder</string>
-    <string name="rename_file">Rename file or folder</string>
-    <string name="pick_folder">Choose folder</string>
-    <string name="open_file">Open</string>
-    <string name="permission_denied">Permission denied</string>
-    <string name="select_folder">Select a folder</string>
-    <string name="no_items">This folder is empty</string>
-    <string name="storage_access_required">Please choose a folder to browse with the modern Storage Access Framework.</string>
-    <string name="browse_current">Browse current folder</string>
-    <string name="new_folder_name">New folder name</string>
-    <string name="rename_to">Rename to</string>
+
+    <string name="add_method">Add method</string>
+    <string name="add_field">Add field</string>
+    <string name="file_added">File added</string>
+    <string name="save_elf">Save ELF</string>
+    <string name="save_code">Save code</string>
+    <string name="save_dexfile">Save Dex</string>
+    <string name="save_text">Save text</string>
+    <string name="saved">Saved</string>
+    <string name="method_editor">Method description</string>
+    <string name="remove_method">Remove method</string>
+    <string name="remove_field">Remove field</string>
+    <string name="rename_class">Rename class</string>
+    <string name="zip_editor_remove">Delete</string>
+    <string name="zip_remove_progress">Deleting...</string>
+    <string name="is_remove">Delete?</string>
+    <string name="merger_dexfile">Merge Dex</string>
+    <string name="remove_class">Delete class</string>
+    <string name="write_zip">Writing...</string>
+    <string name="load_data">Loading...</string>
+    <string name="signed_zip">Signing...</string>
+    <string name="string_pool">String constant pool</string>
+    <string name="replace_axml">Replace XML characters</string>
+    <string name="replace_src_view">Search:</string>
+    <string name="replace_dst_view">Replace with:</string>
+    <string name="replace">Replace</string>
+    <string name="replace_count">Replacement count: </string>
+    <string name="search_string">Search string</string>
+    <string name="search_field">Search field</string>
+    <string name="search_method">Search method</string>
+    <string name="search_name">Name: </string>
+    <string name="search_descriptor">Type descriptor: </string>
+    <string name="search">Search</string>
+    <string name="search_class_name">Belongs to class:</string>
+    <string name="search_name_empty">Search text is empty.</string>
+    <string name="search_not_found">%s not found.</string>
+
+    <string name="prefs_text">Text editor</string>
+    <string name="preferences">Settings</string>
+    <string name="prompt">Prompt</string>
+    <string name="is_save">Save?</string>
+    <string name="saving">Saving...</string>
+    <string name="class_exists">Class name "%s" already exists.</string>
+
+    <string name="line_wrap">Auto line wrap</string>
+    <string name="line_wrap_summary">Wrap automatically when text is too long</string>
+
+    <string name="appearance">Editor interface</string>
+    <string name="font_type">Font</string>
+    <string name="font_type_summary">Select font type</string>
+    <string name="font_size">Font size</string>
+    <string name="font_size_summary">Select font size</string>
+    <string name="font_color">Font color</string>
+    <string name="font_color_summary">Select font color</string>
+    <string name="bg_color">Background color</string>
+    <string name="bg_color_summary">Select background color</string>
+
+    <string name="zip_editor">Zip editor</string>
+    <string name="text_editor">Text editor</string>
+    <string name="class_editor">Class editor</string>
+    <string name="class_item">Class</string>
+    <string name="search_class">Search class results</string>
+    <string name="field_list">Field list</string>
+    <string name="field_item_editor">Field editor</string>
+    <string name="field_item_new">New field</string>
+    <string name="method_list">Method list</string>
+    <string name="code_editor">Code editor</string>
+    <string name="method_item_editor">Method editor</string>
+    <string name="method_item_new">New method</string>
+    <string name="class_info_editor">Class editor</string>
+    <string name="text_preferences">Text settings</string>
+
+    <string name="about">About</string>
+    <string name="about_content">Author: Zeng Ge
+
+ZGNB Manager can perform basic file management, archive extraction, and also supports editing APK, DEX, ARSC, binary XML, and other Android-rel[...]</string>
+    <string name="replacing">Replacing...</string>
+    <string name="searching">Searching...</string>
+
+    <string name="from_start">From the beginning</string>
+    <string name="choose_color">Choose color</string>
+    <string name="ignore_name_descriptor">Ignore name and descriptor</string>
+    <string name="ignore_descriptor">Ignore descriptor</string>
+    <string name="extract_rar_success">RAR extraction successful!</string>
+    <string name="failed_to_extract_rar">RAR extraction failed!</string>
+    <string name="rar_native_error">The module responsible for RAR extraction has crashed. This issue will be fixed in a newer version.</string>
+    <string name="oat2dex_success">OAT to DEX successful!</string>
+    <string name="oat2dex_fail">OAT to DEX failed!</string>
+    <string name="odex2dex_success">ODEX to DEX successful!</string>
+    <string name="odex2dex_fail">ODEX to DEX failed!</string>
+    <string name="parse_elf_success">ELF file information dumped successfully!</string>
+    <string name="parse_elf_fail">ELF file information dump failed!</string>
+    <string name="videoplayer_label">Zeng Ge Video Player</string>
+    <string name="audioplayer_label">Zeng Ge Music Player</string>
+    <string name="audio_play">Play</string>
+    <string name="audio_pause">Pause</string>
+    <string name="audio_stop">Stop</string>
+    <string name="dex2jar_success">DEX2JAR successful!</string>
+    <string name="dex2jar_fail">DEX2JAR failed!</string>
+    <string name="tips">Tips</string>
+    <string name="dex_instruction">This is a Dex file (an Android Dalvik virtual machine executable bytecode file, i.e. the main code section of an APK application). Do you want to convert it to [...]
+</string>
+    <string name="tojar">Convert to JAR</string>
+    <string name="editdex">Edit DEX</string>
+    <string name="disasm_dex">Disassemble DEX</string>
+    <string name="disdex_fail">Disassembly of DEX failed!</string>
+    <string name="disdex_success">DEX disassembly successful!</string>
+    <string name="jar2dex_success">JAR2DEX successful!</string>
+    <string name="jar2dex_fail">JAR2DEX failed!</string>
+    <string name="jar_instruction">This is a standard Jar file (containing standard Java VM .class format class files). Do you want to convert it to Dex, decompile the source code, or browse its [...]
+</string>
+    <string name="apk_instruction">This is an APK file. Do you want to browse its internal files or decompile the Java code inside it?</string>
+    <string name="open_apk">Open APK</string>
+    <string name="jadx_suc">Java code decompilation successful</string>
+    <string name="jadx_fail">Java code decompilation failed</string>
+    <string name="todex">Convert to DEX</string>
+    <string name="explore_jar">Browse JAR</string>
+    <string name="decompile_jar">Decompile JAR source code</string>
+    <string name="decompile_javainapk">Decompile Java code</string>
+    <string name="djar_success">JAR decompilation successful!</string>
+    <string name="djar_fail">JAR decompilation failed!</string>
+    <string name="perm_read">Read</string>
+    <string name="perm_write">Write</string>
+    <string name="perm_exec">Execute</string>
+    <string name="perm_owner">Owner</string>
+    <string name="perm_group">Group</string>
+    <string name="perm_other">Other</string>
+    <string name="accessflag">Access modifier</string>
+    <string name="superclazz">Inherited parent class</string>
+    <string name="interfaze">Implemented interface class</string>
+    <string name="sourcefile">Source file</string>
+    <string name="system_info">System information</string>
+    <string name="warning">Warning</string>
+    <string name="warning_dex2jar">Because the DEX2JAR code (not written by the author) is too redundant, processing large DEX files (>= 800KB) can freeze the phone UI and temporarily prevent the[...]
+</string>
+    <string name="warning_jar2dex">Because the Android Dexer code (not written by the author) is too redundant, processing large JAR files (>= 600KB) can freeze the phone UI and temporarily preve[...]
+</string>
+    <string name="zipalign">ZipAlign optimization</string>
+    <string name="zip_has_aligned">This file has already been ZIPAlign optimized</string>
+    <string name="zipa_success">ZipAlign successful!</string>
+    <string name="zipa_fail">ZipAlign failed!</string>
+    <string name="invalid_elf">Not a valid ELF file!</string>
+    <string name="smali_instruction">This directory contains smali code obtained from Dex disassembly. Do you want to compile it or browse the file directory?</string>
+    <string name="build_smali">Compile smali</string>
+    <string name="smali_to_java">Convert to Java</string>
+    <string name="explore_dir">Browse directory</string>
+    <string name="build_smali_success">Smali compilation successful</string>
+    <string name="build_smali_fail">Smali compilation failed</string>
+    <string name="s2j_success">Smali to Java successful</string>
+    <string name="s2j_fail">Smali to Java failed</string>
+    <string name="dex_merged">Dex merged</string>
+    <string name="save_successful">Saved successfully</string>
+    <string name="code_error">An error occurred while saving the code</string>
+
+    <string name="ok">OK</string>
+    <string name="cancel">Cancel</string>
+    <string name="error">Error</string>
+    <string name="success">Operation successful</string>
+    <string name="failure">Operation failed</string>
+    <string name="parsing">Parsing...</string>
+    <string name="notice">Notice</string>
+    <string name="ensure_save">Are you sure you want to save?</string>
+    <string name="out_of_memory">Out of memory!</string>
+
+    <string name="translate">Translate</string>
+    <string name="translator">Translator:</string>
+    <string name="translating">Translating...</string>
+    <string name="translate_success">Translation successful!</string>
+    <string name="source_language">Source language:</string>
+    <string name="target_language">Target language:</string>
+    <string name="skip_already_translated">Skip already translated content</string>
+    <string name="search_result">Search results:</string>
+    <string name="search_hint">Enter content to search</string>
+    <string name="string_edit">String editor</string>
+    <string name="no_strings_for_editing">No strings available for editing</string>
+    <string name="can_not_edit">Cannot edit!</string>
 </resources>
