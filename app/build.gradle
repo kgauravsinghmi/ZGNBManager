@@ -44,16 +44,14 @@ android {
 }
 
 dependencies {
-    // Include any bundled jars in app/libs
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
-    // AndroidX and core libraries
     implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'androidx.core:core:1.10.1'
     implementation 'androidx.multidex:multidex:2.0.1'
     implementation 'androidx.recyclerview:recyclerview:1.3.2'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
 
-    // Original third-party libraries (kept as Maven coordinates where available)
     implementation 'org.jsoup:jsoup:1.12.1'
     implementation 'org.slf4j:slf4j-api:1.7.10'
     implementation 'commons-io:commons-io:2.4'
