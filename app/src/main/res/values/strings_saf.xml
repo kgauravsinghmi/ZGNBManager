@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="browse_folder">Browse folder</string>
+    <string name="pick_folder">Choose folder</string>
+    <string name="create_folder">Create folder</string>
+    <string name="open">Open</string>
+    <string name="permission_denied">Permission denied</string>
+    <string name="create_success">Created successfully</string>
+    <string name="rename_success">Renamed successfully</string>
+    <string name="delete_success">Deleted successfully</string>
+    <string name="error_occurred">An error occurred</string>
+    <string name="file_browser_saf">Modern file browser</string>
+</resources>
