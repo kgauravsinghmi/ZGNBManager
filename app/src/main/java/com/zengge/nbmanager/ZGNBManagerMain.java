@@ -16,7 +16,6 @@
 
 package com.zengge.nbmanager;
 
-import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -33,8 +32,11 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
-import android.support.v4.content.FileProvider;
-import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.view.KeyEvent;
@@ -53,13 +55,12 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.telephony.TelephonyManager;
-import android.util.*;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
+import android.os.Build;
+import android.provider.Settings;
 
-import java.lang.ref.*;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.FileProvider;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -84,8 +85,6 @@ import java.util.zip.*;
 
 import jd.commonide.IdeDecompiler;
 import jd.commonide.preferences.IdePreferences;
-import android.os.Build;
-import android.provider.Settings;
 
 import org.jf.baksmali.BakSmaliFunc;
 import org.jf.dexlib.*;
@@ -100,9 +99,6 @@ import com.zengge.vp.VideoPlayerActivity;
 import com.zengge.arsceditor.ArscActivity;
 
 import org.jf.smali.main;
-
-import android.support.v4.content.ContextCompat;
-import android.support.v4.app.ActivityCompat;
 
 public class ZGNBManagerMain extends AppCompatActivity {
 
@@ -131,23 +127,23 @@ public class ZGNBManagerMain extends AppCompatActivity {
     private static boolean mCut;
     private static File mClipboard;
     private Dialog mPermissionDialog;
-    private Handler mHandler = new Handler() {
+    private final Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
             switch(msg.what) {
-            case SHOWPROGRESS:
-                ZGNBManagerMain.this.showDialog(0);
-                break;
-            case DISMISSPROGRESS:
-                mAdapter.notifyDataSetInvalidated();
-                ZGNBManagerMain.this.dismissDialog(0);
-                break;
-            case TOAST:
-                toast(msg.obj.toString());
-                break;
-            case SHOWMESSAGE:
-                showMessage(ZGNBManagerMain.this, "", msg.obj.toString());
-                break;
+                case SHOWPROGRESS:
+                    ZGNBManagerMain.this.showDialog(0);
+                    break;
+                case DISMISSPROGRESS:
+                    if (mAdapter != null) mAdapter.notifyDataSetInvalidated();
+                    ZGNBManagerMain.this.dismissDialog(0);
+                    break;
+                case TOAST:
+                    toast(msg.obj != null ? msg.obj.toString() : "");
+                    break;
+                case SHOWMESSAGE:
+                    showMessage(ZGNBManagerMain.this, "", msg.obj != null ? msg.obj.toString() : "");
+                    break;
             }
         }
     };
@@ -172,16 +168,15 @@ public class ZGNBManagerMain extends AppCompatActivity {
     public static final int TOAST = 3;
     public static final int ERROR = 4;
     public static final int SHOWMESSAGE = 5;
-    // Linux stat constants
-    public static final int S_IFMT = 0170000; /* type of file */
-    public static final int S_IFLNK = 0120000; /* symbolic link */
-    public static final int S_IFREG = 0100000; /* regular */
-    public static final int S_IFBLK = 0060000; /* block special */
-    public static final int S_IFDIR = 0040000; /* directory */
-    public static final int S_IFCHR = 0020000; /* character special */
-    public static final int S_IFIFO = 0010000; /* this is a FIFO */
-    public static final int S_ISUID = 0004000; /* set user id on execution */
-    public static final int S_ISGID = 0002000; /* set group id on execution */
+    public static final int S_IFMT = 0170000;
+    public static final int S_IFLNK = 0120000;
+    public static final int S_IFREG = 0100000;
+    public static final int S_IFBLK = 0060000;
+    public static final int S_IFDIR = 0040000;
+    public static final int S_IFCHR = 0020000;
+    public static final int S_IFIFO = 0010000;
+    public static final int S_ISUID = 0004000;
+    public static final int S_ISGID = 0002000;
 
     public boolean initialized = false;
 
@@ -207,138 +202,91 @@ public class ZGNBManagerMain extends AppCompatActivity {
         if(mPermissionDialog == null) {
             mPermissionDialog = new Dialog(this);
             mPermissionDialog.setContentView(R.layout.permissions);
-            mPermissionDialog.findViewById(R.id.btnOk).setOnClickListener(new View.OnClickListener() {
-                public void onClick(View v) {
-                    setPermissions();
-                }
-            });
-            mPermissionDialog.findViewById(R.id.btnCancel).setOnClickListener(new View.OnClickListener() {
-                public void onClick(View v) {
-                    mPermissionDialog.hide();
-                }
-            });
+            mPermissionDialog.findViewById(R.id.btnOk).setOnClickListener(v -> setPermissions());
+            mPermissionDialog.findViewById(R.id.btnCancel).setOnClickListener(v -> mPermissionDialog.hide());
         }
         lv.setSelection(position);
-        lv.setOnItemClickListener(new ListView.OnItemClickListener() {
-            @Override
-            public void onItemClick(final AdapterView<?> parent, View view, int position, long id) {
-                final File file = (File) parent.getItemAtPosition(position);
-                ZGNBManagerMain.this.position = position;
-                String name = file.getName();
-                mCurrent = file;
-                if(file.isDirectory()) {
-                    if(file.toString().endsWith("_baksmali")) {
-                        isPreparedToBuildSmali = true;
-                        AlertDialog.Builder builder = new AlertDialog.Builder(ZGNBManagerMain.this);
-                        builder.setTitle(getString(R.string.tips));
-                        builder.setMessage(getString(R.string.smali_instruction));
-                        builder.setPositiveButton(getString(R.string.build_smali), new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface arg0, int arg1) {
-                                // TODO Auto-generated method stub
-                                buildSmali(file);
-                                isPreparedToBuildSmali = false;
-                            }
-                        });
-                        builder.setNeutralButton(getString(R.string.explore_dir), new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface arg0, int arg1) {
-                                mCurrentDir = file;
-                                pos.push(parent.getFirstVisiblePosition());
-                                mAdapter.notifyDataSetInvalidated();
-                                isPreparedToBuildSmali = false;
-                            }
-                        });
-                        builder.show();
-                    } else {
+        lv.setOnItemClickListener((parent, view, position, id) -> {
+            final File file = (File) parent.getItemAtPosition(position);
+            ZGNBManagerMain.this.position = position;
+            String name = file.getName();
+            mCurrent = file;
+            if(file.isDirectory()) {
+                if(file.toString().endsWith("_baksmali")) {
+                    isPreparedToBuildSmali = true;
+                    AlertDialog.Builder builder = new AlertDialog.Builder(ZGNBManagerMain.this);
+                    builder.setTitle(getString(R.string.tips));
+                    builder.setMessage(getString(R.string.smali_instruction));
+                    builder.setPositiveButton(getString(R.string.build_smali), (arg0, arg1) -> {
+                        buildSmali(file);
+                        isPreparedToBuildSmali = false;
+                    });
+                    builder.setNeutralButton(getString(R.string.explore_dir), (arg0, arg1) -> {
                         mCurrentDir = file;
                         pos.push(parent.getFirstVisiblePosition());
                         mAdapter.notifyDataSetInvalidated();
-                        return;
-                    }
-                }
-                if(mSelectMod) {
-                    mSelectMod = false;
-                    resultFileToZipEditor(file);
+                        isPreparedToBuildSmali = false;
+                    });
+                    builder.show();
+                } else {
+                    mCurrentDir = file;
+                    pos.push(parent.getFirstVisiblePosition());
+                    mAdapter.notifyDataSetInvalidated();
                     return;
                 }
-                if(isZip(file))
-                    openApk(file);
-                else if(name.toLowerCase().endsWith(".mp4") || name.toLowerCase().endsWith(".3gp")) {
-                    Intent intent = new Intent(ZGNBManagerMain.this, VideoPlayerActivity.class);
-                    intent.setData(Uri.parse(file.toString()));
-                    startActivity(intent);
-                } else if(name.toLowerCase().endsWith(".mp3") || name.toLowerCase().endsWith(".aac")
-                          || name.toLowerCase().endsWith(".ogg") || name.toLowerCase().endsWith(".wma")
-                          || name.toLowerCase().endsWith(".wav") || name.toLowerCase().endsWith(".amr")) {
-                    Intent intent = new Intent(ZGNBManagerMain.this, AudioPlayer.class);
-                    intent.putExtra("AUDIOPATH", file.toString());
-                    startActivity(intent);
-                } else if(name.toLowerCase().endsWith(".jpg") || name.toLowerCase().endsWith(".png")
-                          || name.toLowerCase().endsWith(".bmp")) {
-                    Intent it = new Intent(ZGNBManagerMain.this, HugeImageViewerActivity.class);
-                    it.putExtra("IMAGEPATH", file.toString());
-                    startActivity(it);
-                } else if(name.toLowerCase().endsWith(".rar"))
-                    ExtractRar(file);
-                else if(name.toLowerCase().endsWith(".odex"))
-                    ConOdex(file);
-                else if(name.toLowerCase().endsWith(".oat"))
-                    OatToDex(file);
-                else if(name.toLowerCase().endsWith(".so")) {
-                    if(!Features.isValidElf(file.toString())) {
-                        Toast.makeText(ZGNBManagerMain.this, getString(R.string.invalid_elf), Toast.LENGTH_LONG).show();
-                        return;
-                    }
-                    PELF(file);
-                } else if(name.toLowerCase().endsWith(".arsc"))
-                    editArsc(file);
-                else if(name.toLowerCase().endsWith(".xml"))
-                    editAxml(file);
-                else if(name.toLowerCase().endsWith(".txt") || name.toLowerCase().endsWith(".c")
-                        || name.toLowerCase().endsWith(".cpp") || name.toLowerCase().endsWith(".java")
-                        || name.toLowerCase().endsWith(".py") || name.toLowerCase().endsWith(".h")
-                        || name.toLowerCase().endsWith(".hpp") || name.toLowerCase().endsWith(".cs")
-                        || name.toLowerCase().endsWith(".smali"))
-                    editText(file);
-                else if(name.toLowerCase().endsWith(".dex"))
-                    openDexFile(file);
-                else {
-                    if(!isPreparedToBuildSmali)
-                        dialogMenu();
+            }
+            if(mSelectMod) {
+                mSelectMod = false;
+                resultFileToZipEditor(file);
+                return;
+            }
+            if(isZip(file))
+                openApk(file);
+            else if(name.toLowerCase().endsWith(".mp4") || name.toLowerCase().endsWith(".3gp")) {
+                Intent intent = new Intent(ZGNBManagerMain.this, VideoPlayerActivity.class);
+                intent.setData(Uri.parse(file.toString()));
+                startActivity(intent);
+            } else if(name.toLowerCase().endsWith(".mp3") || name.toLowerCase().endsWith(".aac")
+                    || name.toLowerCase().endsWith(".ogg") || name.toLowerCase().endsWith(".wma")
+                    || name.toLowerCase().endsWith(".wav") || name.toLowerCase().endsWith(".amr")) {
+                Intent intent = new Intent(ZGNBManagerMain.this, AudioPlayer.class);
+                intent.putExtra("AUDIOPATH", file.toString());
+                startActivity(intent);
+            } else if(name.toLowerCase().endsWith(".jpg") || name.toLowerCase().endsWith(".png")
+                    || name.toLowerCase().endsWith(".bmp")) {
+                Intent it = new Intent(ZGNBManagerMain.this, HugeImageViewerActivity.class);
+                it.putExtra("IMAGEPATH", file.toString());
+                startActivity(it);
+            } else if(name.toLowerCase().endsWith(".rar"))
+                ExtractRar(file);
+            else if(name.toLowerCase().endsWith(".odex"))
+                ConOdex(file);
+            else if(name.toLowerCase().endsWith(".oat"))
+                OatToDex(file);
+            else if(name.toLowerCase().endsWith(".so")) {
+                if(!Features.isValidElf(file.toString())) {
+                    Toast.makeText(ZGNBManagerMain.this, getString(R.string.invalid_elf), Toast.LENGTH_LONG).show();
+                    return;
                 }
+                PELF(file);
+            } else if(name.toLowerCase().endsWith(".arsc"))
+                editArsc(file);
+            else if(name.toLowerCase().endsWith(".xml"))
+                editAxml(file);
+            else if(name.toLowerCase().endsWith(".txt") || name.toLowerCase().endsWith(".c")
+                    || name.toLowerCase().endsWith(".cpp") || name.toLowerCase().endsWith(".java")
+                    || name.toLowerCase().endsWith(".py") || name.toLowerCase().endsWith(".h")
+                    || name.toLowerCase().endsWith(".hpp") || name.toLowerCase().endsWith(".cs")
+                    || name.toLowerCase().endsWith(".smali"))
+                editText(file);
+            else if(name.toLowerCase().endsWith(".dex"))
+                openDexFile(file);
+            else {
+                if(!isPreparedToBuildSmali)
+                    dialogMenu();
             }
         });
         initialized = true;
-    }
-
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        switch(requestCode) {
-        // requestCode即所声明的权限获取码，在checkSelfPermission时传入
-        case RQ_PERMISSION:
-            if(grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // 获取到权限，作相应处理（调用定位SDK应当确保相关权限均被授权，否则可能引起定位失败）
-                CreateInit();
-            } else {
-                // 没有获取到权限，做特殊处理
-                android.support.v7.app.AlertDialog.Builder builder = new android.support.v7.app.AlertDialog.Builder(ZGNBManagerMain.this);
-                builder.setTitle("提示");
-                builder.setMessage("必须获取权限才能运行！");
-                builder.setPositiveButton("确定", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        android.os.Process.killProcess(android.os.Process.myPid());
-                    }
-                });
-                builder.show();
-            }
-            break;
-        default:
-            break;
-        }
     }
 
     public static final int RQ_PERMISSION = 100;
@@ -347,13 +295,15 @@ public class ZGNBManagerMain extends AppCompatActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.listact);
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if(ContextCompat.checkSelfPermission(ZGNBManagerMain.this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
-                    || ContextCompat.checkSelfPermission(ZGNBManagerMain.this, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
-                //没有权限则申请权限
-                ActivityCompat.requestPermissions(ZGNBManagerMain.this, new String[] {Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_PHONE_STATE}, RQ_PERMISSION);
-            } else CreateInit();
-        } else CreateInit();
+        CreateInit();
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == RQ_PERMISSION) {
+            CreateInit();
+        }
     }
 
     public static String getPkgSign(Context ctx) {
@@ -362,8 +312,7 @@ public class ZGNBManagerMain extends AppCompatActivity {
             PackageInfo pi = pm.getPackageInfo(ctx.getPackageName(), PackageManager.GET_SIGNATURES);
             return new String(pi.signatures[0].toChars());
         } catch(Exception e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            Log.e(TAG, "getPkgSign failed", e);
             return "NULL";
         }
     }
@@ -410,27 +359,32 @@ public class ZGNBManagerMain extends AppCompatActivity {
 
     public static boolean writeSrc(File file, String content) {
         FileOutputStream fop = null;
-        File par = new File(file.getParent());
-        if(!par.exists())
+        File par = file.getParentFile();
+        if(par != null && !par.exists()) {
             par.mkdirs();
+        }
         try {
-            fop = new FileOutputStream(file);
-            if(!file.exists())
+            if(!file.exists()) {
+                File parent = file.getParentFile();
+                if(parent != null && !parent.exists()) {
+                    parent.mkdirs();
+                }
                 file.createNewFile();
+            }
+            fop = new FileOutputStream(file);
             byte[] contentInBytes = content.getBytes();
             fop.write(contentInBytes);
             fop.flush();
-            fop.close();
             return true;
         } catch(IOException e) {
-            e.printStackTrace();
+            Log.e(TAG, "writeSrc failed", e);
             return false;
         } finally {
             try {
                 if(fop != null)
                     fop.close();
             } catch(IOException e) {
-                e.printStackTrace();
+                Log.e(TAG, "writeSrc close failed", e);
             }
         }
     }
@@ -439,16 +393,18 @@ public class ZGNBManagerMain extends AppCompatActivity {
         String decompilestr;
         int i = 1;
         String debugfile = Environment.getExternalStorageDirectory() + File.separator + "ZGNBManager" + File.separator
-                           + "debug-" + System.currentTimeMillis() + ".txt";
-        if(!new File(new File(debugfile).getParent()).exists())
-            new File(new File(debugfile).getParent()).mkdirs();
+                + "debug-" + System.currentTimeMillis() + ".txt";
+        File debugDir = new File(debugfile).getParentFile();
+        if(debugDir != null && !debugDir.exists()) {
+            debugDir.mkdirs();
+        }
         Features.printLog(debugfile, "JAR Decompiler Debugging Info!", true);
         Features.printLog(debugfile, "Processing JAR File : ", true);
         try {
             ZipFile zipFile = new ZipFile(zip);
-            Enumeration<ZipEntry> enu = (Enumeration<ZipEntry>) zipFile.entries();
+            Enumeration<? extends ZipEntry> enu = zipFile.entries();
             while(enu.hasMoreElements()) {
-                ZipEntry zipElement = (ZipEntry) enu.nextElement();
+                ZipEntry zipElement = enu.nextElement();
                 zipFile.getInputStream(zipElement);
                 String fileName = zipElement.getName();
                 if(!fileName.endsWith(".class"))
@@ -470,8 +426,9 @@ public class ZGNBManagerMain extends AppCompatActivity {
                 if(!writeSrc(new File(dest), decompilestr))
                     return false;
             }
+            zipFile.close();
         } catch(Exception e) {
-            e.printStackTrace();
+            Log.e(TAG, "DecompileJAR failed", e);
             return false;
         }
         return true;
@@ -481,9 +438,9 @@ public class ZGNBManagerMain extends AppCompatActivity {
         boolean value = false;
         try {
             ZipFile zipFile = new ZipFile(zip);
-            Enumeration<ZipEntry> enu = (Enumeration<ZipEntry>) zipFile.entries();
+            Enumeration<? extends ZipEntry> enu = zipFile.entries();
             while(enu.hasMoreElements()) {
-                ZipEntry zipElement = (ZipEntry) enu.nextElement();
+                ZipEntry zipElement = enu.nextElement();
                 zipFile.getInputStream(zipElement);
                 String fileName = zipElement.getName();
                 if(fileName.endsWith(".class")) {
@@ -491,8 +448,9 @@ public class ZGNBManagerMain extends AppCompatActivity {
                     break;
                 }
             }
+            zipFile.close();
         } catch(Exception e) {
-            e.printStackTrace();
+            Log.e(TAG, "isStandardJAR failed", e);
         }
         return value;
     }
@@ -502,74 +460,53 @@ public class ZGNBManagerMain extends AppCompatActivity {
             AlertDialog.Builder builder = new AlertDialog.Builder(this);
             builder.setTitle(getString(R.string.tips));
             builder.setMessage(getString(R.string.jar_instruction));
-            builder.setPositiveButton(getString(R.string.todex), new DialogInterface.OnClickListener() {
-                public void onClick(DialogInterface dialog, int whichButton) {
-                    new Thread(new Runnable() {
-                        public void run() {
-                            mHandler.sendEmptyMessage(SHOWPROGRESS);
-                            boolean JAR2DEX_SUC = false;
-                            try {
-                                JAR2DEX_SUC = J2DMain.JarToDex(file.toString(),
-                                                                       file.toString().substring(0, file.toString().length() - 4) + "_converted.dex");
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                                JAR2DEX_SUC = false;
-                            }
-                            if(!JAR2DEX_SUC)
-                                showToast(getString(R.string.jar2dex_success));
-                            else
-                                showToast(getString(R.string.jar2dex_fail));
-                            mHandler.sendEmptyMessage(DISMISSPROGRESS);
-                        }
-                    }).start();
-                }
+            builder.setPositiveButton(getString(R.string.todex), (dialog, whichButton) -> {
+                new Thread(() -> {
+                    mHandler.sendEmptyMessage(SHOWPROGRESS);
+                    boolean JAR2DEX_SUC = false;
+                    try {
+                        JAR2DEX_SUC = J2DMain.JarToDex(file.toString(),
+                                file.toString().substring(0, file.toString().length() - 4) + "_converted.dex");
+                    } catch (IOException e) {
+                        Log.e(TAG, "JAR2DEX failed", e);
+                        JAR2DEX_SUC = false;
+                    }
+                    if(!JAR2DEX_SUC)
+                        showToast(getString(R.string.jar2dex_success));
+                    else
+                        showToast(getString(R.string.jar2dex_fail));
+                    mHandler.sendEmptyMessage(DISMISSPROGRESS);
+                }).start();
             });
-            builder.setNegativeButton(getString(R.string.decompile_jar), new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            mHandler.sendEmptyMessage(SHOWPROGRESS);
-                            boolean dsuc = DecompileJAR(file.toString());
-                            if(dsuc)
-                                showToast(getString(R.string.djar_success));
-                            else
-                                showToast(getString(R.string.djar_fail));
-                            mHandler.sendEmptyMessage(DISMISSPROGRESS);
-                        }
-                    }).start();
-                }
+            builder.setNegativeButton(getString(R.string.decompile_jar), (dialog, which) -> {
+                new Thread(() -> {
+                    mHandler.sendEmptyMessage(SHOWPROGRESS);
+                    boolean dsuc = DecompileJAR(file.toString());
+                    if(dsuc)
+                        showToast(getString(R.string.djar_success));
+                    else
+                        showToast(getString(R.string.djar_fail));
+                    mHandler.sendEmptyMessage(DISMISSPROGRESS);
+                }).start();
             });
-            builder.setNeutralButton(getString(R.string.explore_jar), new DialogInterface.OnClickListener() {
-                public void onClick(DialogInterface dialog, int whichButton) {
-                    new Thread(new Runnable() {
-                        public void run() {
-                            Intent intent = new Intent(ZGNBManagerMain.this, ZipManagerMain.class);
-                            ZipManagerMain.zipFileName = file.getAbsolutePath();
-                            startActivityForResult(intent, ActResConstant.list_item_details);
-                        }
-                    }).start();
-                }
+            builder.setNeutralButton(getString(R.string.explore_jar), (dialog, whichButton) -> {
+                new Thread(() -> {
+                    Intent intent = new Intent(ZGNBManagerMain.this, ZipManagerMain.class);
+                    ZipManagerMain.zipFileName = file.getAbsolutePath();
+                    startActivityForResult(intent, ActResConstant.list_item_details);
+                }).start();
             });
             builder.show();
         } else if(file.toString().endsWith(".apk")) {
             AlertDialog.Builder builder = new AlertDialog.Builder(this);
             builder.setTitle(getString(R.string.tips));
             builder.setMessage(getString(R.string.apk_instruction));
-            builder.setPositiveButton(getString(R.string.open_apk), new DialogInterface.OnClickListener() {
-                public void onClick(DialogInterface dialog, int whichButton) {
-                    Intent intent = new Intent(ZGNBManagerMain.this, ZipManagerMain.class);
-                    ZipManagerMain.zipFileName = file.getAbsolutePath();
-                    startActivityForResult(intent, ActResConstant.list_item_details);
-                }
+            builder.setPositiveButton(getString(R.string.open_apk), (dialog, whichButton) -> {
+                Intent intent = new Intent(ZGNBManagerMain.this, ZipManagerMain.class);
+                ZipManagerMain.zipFileName = file.getAbsolutePath();
+                startActivityForResult(intent, ActResConstant.list_item_details);
             });
-            builder.setNegativeButton(getString(R.string.decompile_javainapk), new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    DecompileFileUtil.openAppIntent(ZGNBManagerMain.this,file.toString());
-                }
-            });
+            builder.setNegativeButton(getString(R.string.decompile_javainapk), (dialog, which) -> DecompileFileUtil.openAppIntent(ZGNBManagerMain.this, file.toString()));
             builder.show();
         } else {
             Intent intent = new Intent(this, ZipManagerMain.class);
@@ -579,61 +516,55 @@ public class ZGNBManagerMain extends AppCompatActivity {
     }
 
     private void editArsc(final File file) {
-        new Thread(new Runnable() {
-            public void run() {
-                mHandler.sendEmptyMessage(SHOWPROGRESS);
-                try {
-                    Intent it = new Intent(ZGNBManagerMain.this, ArscActivity.class);
-                    it.putExtra("FilePath", file.toString());
-                    startActivityForResult(it, ActResConstant.list_item_details);
-                } catch(Exception e) {
-                    Message msg = new Message();
-                    msg.what = SHOWMESSAGE;
-                    msg.obj = "Open Arsc exception " + e.getMessage();
-                    mHandler.sendMessage(msg);
-                }
-                mHandler.sendEmptyMessage(DISMISSPROGRESS);
+        new Thread(() -> {
+            mHandler.sendEmptyMessage(SHOWPROGRESS);
+            try {
+                Intent it = new Intent(ZGNBManagerMain.this, ArscActivity.class);
+                it.putExtra("FilePath", file.toString());
+                startActivityForResult(it, ActResConstant.list_item_details);
+            } catch(Exception e) {
+                Message msg = new Message();
+                msg.what = SHOWMESSAGE;
+                msg.obj = "Open Arsc exception " + e.getMessage();
+                mHandler.sendMessage(msg);
             }
+            mHandler.sendEmptyMessage(DISMISSPROGRESS);
         }).start();
     }
 
     private void editText(final File file) {
-        new Thread(new Runnable() {
-            public void run() {
-                mHandler.sendEmptyMessage(SHOWPROGRESS);
-                try {
-                    TextEditor.data = FileUtil.readFile(file);
-                    Intent intent = new Intent(ZGNBManagerMain.this, TextEditor.class);
-                    intent.putExtra(TextEditor.PLUGIN, "TextEditor");
-                    startActivityForResult(intent, ActResConstant.list_item_details);
-                } catch(Exception e) {
-                    Message msg = new Message();
-                    msg.what = SHOWMESSAGE;
-                    msg.obj = "Open Text exception " + e.getMessage();
-                    mHandler.sendMessage(msg);
-                }
-                mHandler.sendEmptyMessage(DISMISSPROGRESS);
+        new Thread(() -> {
+            mHandler.sendEmptyMessage(SHOWPROGRESS);
+            try {
+                TextEditor.data = FileUtil.readFile(file);
+                Intent intent = new Intent(ZGNBManagerMain.this, TextEditor.class);
+                intent.putExtra(TextEditor.PLUGIN, "TextEditor");
+                startActivityForResult(intent, ActResConstant.list_item_details);
+            } catch(Exception e) {
+                Message msg = new Message();
+                msg.what = SHOWMESSAGE;
+                msg.obj = "Open Text exception " + e.getMessage();
+                mHandler.sendMessage(msg);
             }
+            mHandler.sendEmptyMessage(DISMISSPROGRESS);
         }).start();
     }
 
     private void editAxml(final File file) {
-        new Thread(new Runnable() {
-            public void run() {
-                mHandler.sendEmptyMessage(SHOWPROGRESS);
-                try {
-                    TextEditor.data = FileUtil.readFile(file);
-                    Intent intent = new Intent(ZGNBManagerMain.this, TextEditor.class);
-                    intent.putExtra(TextEditor.PLUGIN, "AXmlEditor");
-                    startActivityForResult(intent, ActResConstant.list_item_details);
-                } catch(Exception e) {
-                    Message msg = new Message();
-                    msg.what = SHOWMESSAGE;
-                    msg.obj = "Open Axml exception " + e.getMessage();
-                    mHandler.sendMessage(msg);
-                }
-                mHandler.sendEmptyMessage(DISMISSPROGRESS);
+        new Thread(() -> {
+            mHandler.sendEmptyMessage(SHOWPROGRESS);
+            try {
+                TextEditor.data = FileUtil.readFile(file);
+                Intent intent = new Intent(ZGNBManagerMain.this, TextEditor.class);
+                intent.putExtra(TextEditor.PLUGIN, "AXmlEditor");
+                startActivityForResult(intent, ActResConstant.list_item_details);
+            } catch(Exception e) {
+                Message msg = new Message();
+                msg.what = SHOWMESSAGE;
+                msg.obj = "Open Axml exception " + e.getMessage();
+                mHandler.sendMessage(msg);
             }
+            mHandler.sendEmptyMessage(DISMISSPROGRESS);
         }).start();
     }
 
@@ -641,118 +572,91 @@ public class ZGNBManagerMain extends AppCompatActivity {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(getString(R.string.tips));
         builder.setMessage(getString(R.string.dex_instruction));
-        builder.setPositiveButton(getString(R.string.tojar), new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int whichButton) {
-                new Thread(new Runnable() {
-                    public void run() {
-                        mHandler.sendEmptyMessage(SHOWPROGRESS);
-                        boolean DEX2JAR_SUC = ConverterMain.procdex(file.toString());
-                        if(!DEX2JAR_SUC)
-                            showToast(getString(R.string.dex2jar_success));
-                        else
-                            showToast(getString(R.string.dex2jar_fail));
-                        mHandler.sendEmptyMessage(DISMISSPROGRESS);
-                    }
-                }).start();
-            }
+        builder.setPositiveButton(getString(R.string.tojar), (dialog, whichButton) -> {
+            new Thread(() -> {
+                mHandler.sendEmptyMessage(SHOWPROGRESS);
+                boolean DEX2JAR_SUC = ConverterMain.procdex(file.toString());
+                if(!DEX2JAR_SUC)
+                    showToast(getString(R.string.dex2jar_success));
+                else
+                    showToast(getString(R.string.dex2jar_fail));
+                mHandler.sendEmptyMessage(DISMISSPROGRESS);
+            }).start();
         });
-        builder.setNeutralButton(getString(R.string.editdex), new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int whichButton) {
-                new Thread(new Runnable() {
-                    public void run() {
-                        try {
-                            mHandler.sendEmptyMessage(SHOWPROGRESS);
-                            ClassListActivity.dexFile = new DexFile(file);
-                            Intent intent = new Intent(ZGNBManagerMain.this, ClassListActivity.class);
-                            startActivityForResult(intent, ActResConstant.list_item_details);
-                        } catch(Exception e) {
-                            Message msg = new Message();
-                            msg.what = SHOWMESSAGE;
-                            msg.obj = "Open dexFile exception " + e.getMessage();
-                            mHandler.sendMessage(msg);
-                        }
-                        mHandler.sendEmptyMessage(DISMISSPROGRESS);
-                    }
-                }).start();
-            }
+        builder.setNeutralButton(getString(R.string.editdex), (dialog, whichButton) -> {
+            new Thread(() -> {
+                try {
+                    mHandler.sendEmptyMessage(SHOWPROGRESS);
+                    ClassListActivity.dexFile = new DexFile(file);
+                    Intent intent = new Intent(ZGNBManagerMain.this, ClassListActivity.class);
+                    startActivityForResult(intent, ActResConstant.list_item_details);
+                } catch(Exception e) {
+                    Message msg = new Message();
+                    msg.what = SHOWMESSAGE;
+                    msg.obj = "Open dexFile exception " + e.getMessage();
+                    mHandler.sendMessage(msg);
+                }
+                mHandler.sendEmptyMessage(DISMISSPROGRESS);
+            }).start();
         });
-        builder.setNegativeButton(getString(R.string.disasm_dex), new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                new Thread(new Runnable() {
-                    public void run() {
-                        mHandler.sendEmptyMessage(SHOWPROGRESS);
-                        boolean DISDEX_SUC = BakSmaliFunc.DoBaksmali(file.toString(),
-                                             file.toString().substring(0, file.toString().length() - 4) + "_baksmali");
-                        if(!DISDEX_SUC)
-                            showToast(getString(R.string.disdex_success));
-                        else
-                            showToast(getString(R.string.disdex_fail));
-                        mHandler.sendEmptyMessage(DISMISSPROGRESS);
-                    }
-                }).start();
-            }
+        builder.setNegativeButton(getString(R.string.disasm_dex), (dialog, which) -> {
+            new Thread(() -> {
+                mHandler.sendEmptyMessage(SHOWPROGRESS);
+                boolean DISDEX_SUC = BakSmaliFunc.DoBaksmali(file.toString(),
+                        file.toString().substring(0, file.toString().length() - 4) + "_baksmali");
+                if(!DISDEX_SUC)
+                    showToast(getString(R.string.disdex_success));
+                else
+                    showToast(getString(R.string.disdex_fail));
+                mHandler.sendEmptyMessage(DISMISSPROGRESS);
+            }).start();
         });
         builder.show();
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        switch(requestCode) {
-        case ActResConstant.list_item_details:
-            switch(resultCode) {
-            case ActResConstant.text_editor:
+        if (requestCode == ActResConstant.list_item_details) {
+            if (resultCode == ActResConstant.text_editor) {
                 renameAndWrite();
-                break;
-            case ActResConstant.zip_list_item:
+            } else if (resultCode == ActResConstant.zip_list_item) {
                 mAdapter.notifyDataSetInvalidated();
                 toast(ZipManagerMain.zipFileName);
-                break;
             }
-            break;
         }
     }
 
-    /*
-     * @Override public void onConfigurationChanged(Configuration conf){
-     * super.onConfigurationChanged(conf); }
-     */
-
     private void renameAndWrite() {
-        new Thread(new Runnable() {
-            public void run() {
-                mHandler.sendEmptyMessage(SHOWPROGRESS);
-                FileOutputStream out = null;
+        new Thread(() -> {
+            mHandler.sendEmptyMessage(SHOWPROGRESS);
+            FileOutputStream out = null;
+            try {
+                FileUtils.rename(mCurrent, mCurrent.getName() + ".bak");
+                out = new FileOutputStream(mCurrent.getAbsolutePath());
+                out.write(TextEditor.data);
+            } catch(IOException io) {
+                Log.e(TAG, "renameAndWrite failed", io);
+            } finally {
                 try {
-                    FileUtils.rename(mCurrent, mCurrent.getName() + ".bak");
-                    out = new FileOutputStream(mCurrent.getAbsolutePath());
-                    out.write(TextEditor.data);
-                } catch(IOException io) {
-                } finally {
-                    try {
-                        if(out != null)
-                            out.close();
-                    } catch(IOException e) {
-                    }
-                    TextEditor.data = null;
-                    System.gc();
+                    if(out != null)
+                        out.close();
+                } catch(IOException e) {
+                    Log.e(TAG, "renameAndWrite close failed", e);
                 }
-                Message msg = new Message();
-                msg.what = TOAST;
-                msg.obj = mCurrent.getName() + getString(R.string.saved);
-                mHandler.sendMessage(msg);
-                mHandler.sendEmptyMessage(DISMISSPROGRESS);
+                TextEditor.data = null;
+                System.gc();
             }
+            Message msg = new Message();
+            msg.what = TOAST;
+            msg.obj = mCurrent.getName() + getString(R.string.saved);
+            mHandler.sendMessage(msg);
+            mHandler.sendEmptyMessage(DISMISSPROGRESS);
         }).start();
     }
 
     private boolean isZip(File file) {
         String name = file.getName().toLowerCase();
-        if(name.endsWith(".apk"))
-            return true;
-        if(name.endsWith(".zip") || name.endsWith(".jar"))
-            return true;
-        return false;
+        return name.endsWith(".apk") || name.endsWith(".zip") || name.endsWith(".jar");
     }
 
     @Override
@@ -796,59 +700,56 @@ public class ZGNBManagerMain extends AppCompatActivity {
         mCurrent = (File) lv.getItemAtPosition(info.position);
         position = info.position;
         switch(item.getItemId()) {
-        case R.string.delete:
-            delete(mCurrent);
-            return true;
-        case R.string.view:
-            viewCurrent();
-            return true;
-        case R.string.extract_all:
-            extractAll(mCurrent);
-            return true;
-        case R.string.zipalign:
-            zipAlign(mCurrent);
-            return true;
-        case R.string.signed:
-            signedFile(mCurrent);
-            return true;
-        case R.string.rename:
-            rename(mCurrent);
-            return true;
-        case R.string.copy:
-            addCopy(mCurrent);
-            return false;
-        case R.string.cut:
-            addCut(mCurrent);
-            return false;
-        case R.string.paste:
-            pasteFile();
-            return false;
-        case R.string.permission:
-            showPermissions();
-            return false;
+            case R.string.delete:
+                delete(mCurrent);
+                return true;
+            case R.string.view:
+                viewCurrent();
+                return true;
+            case R.string.extract_all:
+                extractAll(mCurrent);
+                return true;
+            case R.string.zipalign:
+                zipAlign(mCurrent);
+                return true;
+            case R.string.signed:
+                signedFile(mCurrent);
+                return true;
+            case R.string.rename:
+                rename(mCurrent);
+                return true;
+            case R.string.copy:
+                addCopy(mCurrent);
+                return false;
+            case R.string.cut:
+                addCut(mCurrent);
+                return false;
+            case R.string.paste:
+                pasteFile();
+                return false;
+            case R.string.permission:
+                showPermissions();
+                return false;
         }
         return false;
     }
 
     public void zipAlign(final File file) {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                mHandler.sendEmptyMessage(SHOWPROGRESS);
-                if(Features.isZipAligned(file.toString())) {
-                    showToast(getString(R.string.zip_has_aligned));
-                    mHandler.sendEmptyMessage(DISMISSPROGRESS);
-                    return;
-                }
-                boolean b = Features.ZipAlign(file.toString(),
-                                              file.toString().substring(0, file.toString().length() - 4) + "_aligned"
-                                              + file.toString().substring(file.toString().length() - 4));
-                if(b)
-                    showToast(getString(R.string.zipa_success));
-                else
-                    showToast(getString(R.string.zipa_fail));
+        new Thread(() -> {
+            mHandler.sendEmptyMessage(SHOWPROGRESS);
+            if(Features.isZipAligned(file.toString())) {
+                showToast(getString(R.string.zip_has_aligned));
                 mHandler.sendEmptyMessage(DISMISSPROGRESS);
+                return;
             }
+            boolean b = Features.ZipAlign(file.toString(),
+                    file.toString().substring(0, file.toString().length() - 4) + "_aligned"
+                            + file.toString().substring(file.toString().length() - 4));
+            if(b)
+                showToast(getString(R.string.zipa_success));
+            else
+                showToast(getString(R.string.zipa_fail));
+            mHandler.sendEmptyMessage(DISMISSPROGRESS);
         }).start();
     }
 
@@ -892,6 +793,7 @@ public class ZGNBManagerMain extends AppCompatActivity {
         super.onPrepareOptionsMenu(menu);
         menu.clear();
         menu.add(Menu.NONE, R.string.add_folder, Menu.NONE, R.string.add_folder);
+        menu.add(Menu.NONE, R.string.browse_folder, Menu.NONE, R.string.browse_folder);
         if(mClipboard != null)
             menu.add(Menu.NONE, R.string.paste, Menu.NONE, R.string.paste);
         menu.add(Menu.NONE, R.string.about, Menu.NONE, R.string.about);
@@ -918,46 +820,47 @@ public class ZGNBManagerMain extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         int itemId = item.getItemId();
         switch(itemId) {
-        case R.string.add_folder:
-            newFolder();
-            break;
-        case R.string.paste:
-            pasteFile();
-            break;
-        case R.string.about:
-            showAbout();
-            break;
-        case R.string.exit:
-            finish();
-            clearAll();
-            System.exit(0);
-            break;
+            case R.string.add_folder:
+                newFolder();
+                break;
+            case R.string.browse_folder:
+                openModernFileBrowser();
+                break;
+            case R.string.paste:
+                pasteFile();
+                break;
+            case R.string.about:
+                showAbout();
+                break;
+            case R.string.exit:
+                finish();
+                clearAll();
+                System.exit(0);
+                break;
         }
         return true;
     }
 
     private void signedFile(final File file) {
-        new Thread(new Runnable() {
-            public void run() {
-                mHandler.sendEmptyMessage(SHOWPROGRESS);
-                try {
-                    String out = file.getAbsolutePath();
-                    int i = out.lastIndexOf(".");
-                    if(i != -1)
-                        out = out.substring(0, i) + ".signed" + out.substring(i);
-                    apksigner.Main.sign(file, out);
-                    Message msg = new Message();
-                    msg.what = TOAST;
-                    msg.obj = out + getString(R.string.signed_success);
-                    mHandler.sendMessage(msg);
-                } catch(Exception e) {
-                    Message msg = new Message();
-                    msg.what = SHOWMESSAGE;
-                    msg.obj = "signed error: " + e.getMessage();
-                    mHandler.sendMessage(msg);
-                }
-                mHandler.sendEmptyMessage(DISMISSPROGRESS);
+        new Thread(() -> {
+            mHandler.sendEmptyMessage(SHOWPROGRESS);
+            try {
+                String out = file.getAbsolutePath();
+                int i = out.lastIndexOf(".");
+                if(i != -1)
+                    out = out.substring(0, i) + ".signed" + out.substring(i);
+                apksigner.Main.sign(file, out);
+                Message msg = new Message();
+                msg.what = TOAST;
+                msg.obj = out + getString(R.string.signed_success);
+                mHandler.sendMessage(msg);
+            } catch(Exception e) {
+                Message msg = new Message();
+                msg.what = SHOWMESSAGE;
+                msg.obj = "signed error: " + e.getMessage();
+                mHandler.sendMessage(msg);
             }
+            mHandler.sendEmptyMessage(DISMISSPROGRESS);
         }).start();
     }
 
@@ -972,24 +875,21 @@ public class ZGNBManagerMain extends AppCompatActivity {
         AlertDialog.Builder alert = new AlertDialog.Builder(this);
         alert.setTitle(R.string.extract_path);
         alert.setView(srcName);
-        alert.setPositiveButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int whichButton) {
-                String src = srcName.getText().toString();
-                if(src.length() == 0) {
-                    toast(getString(R.string.extract_path_empty));
-                    return;
-                }
-                new Thread(new Runnable() {
-                    public void run() {
-                        mHandler.sendEmptyMessage(SHOWPROGRESS);
-                        try {
-                            ZipExtract.unzipAll(new ZipFile(file), new File(srcName.getText().toString()));
-                        } catch(Exception e) {
-                        }
-                        mHandler.sendEmptyMessage(DISMISSPROGRESS);
-                    }
-                }).start();
+        alert.setPositiveButton(R.string.btn_ok, (dialog, whichButton) -> {
+            String src = srcName.getText().toString();
+            if(src.length() == 0) {
+                toast(getString(R.string.extract_path_empty));
+                return;
             }
+            new Thread(() -> {
+                mHandler.sendEmptyMessage(SHOWPROGRESS);
+                try {
+                    ZipExtract.unzipAll(new ZipFile(file), new File(srcName.getText().toString()));
+                } catch(Exception e) {
+                    Log.e(TAG, "extractAll failed", e);
+                }
+                mHandler.sendEmptyMessage(DISMISSPROGRESS);
+            }).start();
         });
         alert.setNegativeButton(R.string.btn_cancel, null);
         alert.show();
@@ -998,9 +898,8 @@ public class ZGNBManagerMain extends AppCompatActivity {
     private void dialogMenu() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(mCurrent.getName());
-        builder.setItems(R.array.dialog_menu, new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int which) {
-                switch(which) {
+        builder.setItems(R.array.dialog_menu, (dialog, which) -> {
+            switch(which) {
                 case 0:
                     viewCurrent();
                     break;
@@ -1021,7 +920,7 @@ public class ZGNBManagerMain extends AppCompatActivity {
                     break;
                 case 6:
                     showPermissions();
-                }
+                    break;
             }
         });
         builder.show();
@@ -1034,13 +933,9 @@ public class ZGNBManagerMain extends AppCompatActivity {
 
     private int getPermBit(int bit, int id) {
         CheckBox ck = (CheckBox) mPermissionDialog.findViewById(id);
-        int ret = (ck.isChecked()) ? (1 << bit) : 0;
-        return ret;
+        return (ck.isChecked()) ? (1 << bit) : 0;
     }
 
-    /**
-     * Show and edit file permissions
-     */
     public void showPermissions() {
         mPermissionDialog.setTitle(mCurrent.getName());
         try {
@@ -1060,14 +955,11 @@ public class ZGNBManagerMain extends AppCompatActivity {
         }
     }
 
-    /**
-     * Perform permission setting
-     */
     public void setPermissions() {
         mPermissionDialog.hide();
         int perms = getPermBit(8, R.id.ckOwnRead) | getPermBit(7, R.id.ckOwnWrite) | getPermBit(6, R.id.ckOwnExec)
-                    | getPermBit(5, R.id.ckGrpRead) | getPermBit(4, R.id.ckGrpWrite) | getPermBit(3, R.id.ckGrpExec)
-                    | getPermBit(2, R.id.ckOthRead) | getPermBit(1, R.id.ckOthWrite) | getPermBit(0, R.id.ckOthExec);
+                | getPermBit(5, R.id.ckGrpRead) | getPermBit(4, R.id.ckGrpWrite) | getPermBit(3, R.id.ckGrpExec)
+                | getPermBit(2, R.id.ckOthRead) | getPermBit(1, R.id.ckOthWrite) | getPermBit(0, R.id.ckOthExec);
         try {
             FileUtils.chmod(mCurrent, perms);
             toast(Integer.toString(perms, 8));
@@ -1081,19 +973,18 @@ public class ZGNBManagerMain extends AppCompatActivity {
         Intent intent = new Intent(Intent.ACTION_VIEW);
         Uri uri = FileProvider.getUriForFile(this, getApplicationContext().getPackageName() + ".provider", mCurrent);
         intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        //Uri uri = Uri.fromFile(mCurrent);
         String mime = URLConnection.guessContentTypeFromName(uri.toString());
         if(mime != null) {
             if("text/x-java".equals(mime) || "text/xml".equals(mime))
                 intent.setDataAndType(uri, "text/plain");
             else
                 intent.setDataAndType(uri, mime);
-        } else intent.setDataAndType(uri, "*/*");
-      //  try {
+        } else {
+            intent.setDataAndType(uri, "*/*");
+        }
+        if (intent.resolveActivity(getPackageManager()) != null) {
             startActivity(intent);
-       // } catch(Exception e) {
-       //     showMessage(this, "Intent Exception", e.getMessage());
-      //  }
+        }
     }
 
     public void toast(String message) {
@@ -1121,92 +1012,81 @@ public class ZGNBManagerMain extends AppCompatActivity {
         final File destination = new File(mCurrentDir, mClipboard.getName());
         if(destination.exists())
             message = String.format(getString(R.string.copy_message), destination.getName());
-        if(message != "") {
-            prompt(this, getString(R.string.over_write), message, new DialogInterface.OnClickListener() {
-                public void onClick(DialogInterface dialog, int which) {
-                    if(which == AlertDialog.BUTTON_POSITIVE)
-                        performPasteFile(mClipboard, destination);
-                }
+        if(!message.isEmpty()) {
+            prompt(this, getString(R.string.over_write), message, (dialog, which) -> {
+                if(which == AlertDialog.BUTTON_POSITIVE)
+                    performPasteFile(mClipboard, destination);
             });
-        } else
+        } else {
             performPasteFile(mClipboard, destination);
+        }
     }
 
     protected void performPasteFile(final File source, final File destination) {
         if(source.isDirectory())
             showMessage(this, getString(R.string.copy_exception), getString(R.string.copy_exist));
         else {
-            new Thread(new Runnable() {
-                public void run() {
-                    mHandler.sendEmptyMessage(SHOWPROGRESS);
-                    try {
-                        copyFile(source, destination);
-                        if(mCut)
-                            source.delete();
-                    } catch(Exception e) {
-                    }
-                    mClipboard = null;
-                    Message msg = new Message();
-                    msg.what = TOAST;
-                    msg.obj = destination.getName() + getString(R.string.copied);
-                    mHandler.sendMessage(msg);
-                    mHandler.sendEmptyMessage(DISMISSPROGRESS);
+            new Thread(() -> {
+                mHandler.sendEmptyMessage(SHOWPROGRESS);
+                try {
+                    copyFile(source, destination);
+                    if(mCut)
+                        source.delete();
+                } catch(Exception e) {
+                    Log.e(TAG, "performPasteFile failed", e);
                 }
+                mClipboard = null;
+                Message msg = new Message();
+                msg.what = TOAST;
+                msg.obj = destination.getName() + getString(R.string.copied);
+                mHandler.sendMessage(msg);
+                mHandler.sendEmptyMessage(DISMISSPROGRESS);
             }).start();
         }
     }
 
-    /**
-     * Copy file from source to destination.
-     *
-     * @param source
-     * @param destination
-     */
-
     private static void copyFile(File source, File destination) throws Exception {
-        byte[] buf = new byte[1024];
-        InputStream input = new BufferedInputStream(new FileInputStream(source));
-        OutputStream output = new BufferedOutputStream(new FileOutputStream(destination));
-        int len;
-        while((len = input.read(buf)) > 0)
-            output.write(buf, 0, len);
-        output.flush();
-        output.close();
-        input.close();
+        File parent = destination.getParentFile();
+        if(parent != null && !parent.exists()) parent.mkdirs();
+        try (InputStream input = new BufferedInputStream(new FileInputStream(source));
+             OutputStream output = new BufferedOutputStream(new FileOutputStream(destination))) {
+            byte[] buf = new byte[1024];
+            int len;
+            while((len = input.read(buf)) > 0) {
+                output.write(buf, 0, len);
+            }
+            output.flush();
+        }
         int perms = FileUtils.getPermissions(source) & 0777;
         FileUtils.chmod(destination, perms);
         destination.setLastModified(source.lastModified());
     }
 
     public void ExtractRar(final File name) {
-        new Thread(new Runnable() {
-            public void run() {
-                mHandler.sendEmptyMessage(SHOWPROGRESS);
-                int results = Features.ExtractAllRAR(name.toString(),
-                                                     name.toString().substring(0, name.toString().length() - 4) + "_extracted");
-                if(results == 0)
-                    showToast(getString(R.string.extract_rar_success));
-                else if(results == -1601)
-                    showToast(getString(R.string.rar_native_error));
-                else
-                    showToast(getString(R.string.failed_to_extract_rar));
-                mHandler.sendEmptyMessage(DISMISSPROGRESS);
-            }
+        new Thread(() -> {
+            mHandler.sendEmptyMessage(SHOWPROGRESS);
+            int results = Features.ExtractAllRAR(name.toString(),
+                    name.toString().substring(0, name.toString().length() - 4) + "_extracted");
+            if(results == 0)
+                showToast(getString(R.string.extract_rar_success));
+            else if(results == -1601)
+                showToast(getString(R.string.rar_native_error));
+            else
+                showToast(getString(R.string.failed_to_extract_rar));
+            mHandler.sendEmptyMessage(DISMISSPROGRESS);
         }).start();
     }
 
     public void OatToDex(final File name) {
-        new Thread(new Runnable() {
-            public void run() {
-                mHandler.sendEmptyMessage(SHOWPROGRESS);
-                String str = name.toString();
-                boolean success1 = Features.Oat2Dex(str);
-                mHandler.sendEmptyMessage(DISMISSPROGRESS);
-                if(success1)
-                    showToast(getString(R.string.oat2dex_success));
-                else
-                    showToast(getString(R.string.oat2dex_fail));
-            }
+        new Thread(() -> {
+            mHandler.sendEmptyMessage(SHOWPROGRESS);
+            String str = name.toString();
+            boolean success1 = Features.Oat2Dex(str);
+            mHandler.sendEmptyMessage(DISMISSPROGRESS);
+            if(success1)
+                showToast(getString(R.string.oat2dex_success));
+            else
+                showToast(getString(R.string.oat2dex_fail));
         }).start();
     }
 
@@ -1223,42 +1103,33 @@ public class ZGNBManagerMain extends AppCompatActivity {
         if(Features.isValidElf(name.toString()))
             OatToDex(name);
         else {
-            new Thread(new Runnable() {
-                public void run() {
-                    mHandler.sendEmptyMessage(SHOWPROGRESS);
-                    boolean success2 = Features.Odex2Dex(name.toString(),
-                                                         name.toString().substring(0, name.toString().length() - 5) + "_converted.dex");
-                    if(success2)
-                        showToast(getString(R.string.odex2dex_success));
-                    else
-                        showToast(getString(R.string.odex2dex_fail));
-                    mHandler.sendEmptyMessage(DISMISSPROGRESS);
-                }
+            new Thread(() -> {
+                mHandler.sendEmptyMessage(SHOWPROGRESS);
+                boolean success2 = Features.Odex2Dex(name.toString(),
+                        name.toString().substring(0, name.toString().length() - 5) + "_converted.dex");
+                if(success2)
+                    showToast(getString(R.string.odex2dex_success));
+                else
+                    showToast(getString(R.string.odex2dex_fail));
+                mHandler.sendEmptyMessage(DISMISSPROGRESS);
             }).start();
         }
     }
 
     public void buildSmali(final File name) {
-        new Thread(new Runnable() {
-            public void run() {
-                mHandler.sendEmptyMessage(SHOWPROGRESS);
-                boolean success2 = main.SmaliBuildDex(name.toString(), name.toString() + "_smali.dex", null);
-                if(success2)
-                    showToast(getString(R.string.build_smali_success));
-                else
-                    showToast(getString(R.string.build_smali_fail));
-                mHandler.sendEmptyMessage(DISMISSPROGRESS);
-            }
+        new Thread(() -> {
+            mHandler.sendEmptyMessage(SHOWPROGRESS);
+            boolean success2 = main.SmaliBuildDex(name.toString(), name.toString() + "_smali.dex", null);
+            if(success2)
+                showToast(getString(R.string.build_smali_success));
+            else
+                showToast(getString(R.string.build_smali_fail));
+            mHandler.sendEmptyMessage(DISMISSPROGRESS);
         }).start();
     }
 
     public void showToast(final String msg) {
-        this.runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT).show();
-            }
-        });
+        this.runOnUiThread(() -> Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_SHORT).show());
     }
 
     public boolean isPreparedToBuildSmali = false;
@@ -1286,7 +1157,7 @@ public class ZGNBManagerMain extends AppCompatActivity {
         TelephonyManager tm = (TelephonyManager) getBaseContext().getSystemService(Context.TELEPHONY_SERVICE);
         String androidId = Settings.Secure.getString(getContentResolver(), Settings.Secure.ANDROID_ID);
         String dui = new UUID(androidId.hashCode(),
-                              ((long) tm.getDeviceId().hashCode() << 64 | tm.hashCode()) & tm.toString().hashCode()).toString();
+                ((long) tm.getDeviceId().hashCode() << 64 | tm.hashCode()) & tm.toString().hashCode()).toString();
         dui = dui.replaceAll("-", "");
         info.append("手机型号：" + Build.MODEL + "\n");
         info.append("制造商：" + Build.MANUFACTURER + "\n");
@@ -1308,8 +1179,7 @@ public class ZGNBManagerMain extends AppCompatActivity {
     }
 
     public void showAbout() {
-        Bitmap bmp = null;
-        bmp = BitmapFactory.decodeResource(getResources(), R.drawable.android);
+        Bitmap bmp = BitmapFactory.decodeResource(getResources(), R.drawable.android);
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setIcon(new BitmapDrawable(bmp));
         String title = getString(R.string.app_name);
@@ -1319,17 +1189,14 @@ public class ZGNBManagerMain extends AppCompatActivity {
             if(pi.versionName != null)
                 title += " " + pi.versionName;
         } catch(Exception e) {
-            e.printStackTrace();
+            Log.e(TAG, "showAbout failed", e);
         }
         builder.setTitle(title);
         builder.setMessage(getString(R.string.about_content));
         builder.setNeutralButton(R.string.btn_ok, null);
-        builder.setPositiveButton(R.string.system_info, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.dismiss();
-                SystemInfo();
-            }
+        builder.setPositiveButton(R.string.system_info, (dialog, which) -> {
+            dialog.dismiss();
+            SystemInfo();
         });
         builder.show();
     }
@@ -1348,24 +1215,25 @@ public class ZGNBManagerMain extends AppCompatActivity {
         AlertDialog.Builder alert = new AlertDialog.Builder(this);
         alert.setTitle(R.string.delete);
         alert.setMessage(String.format(getString(R.string.is_delete), file.getName()));
-        alert.setPositiveButton(R.string.btn_yes, new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int whichButton) {
-                new Thread(new Runnable() {
-                    public void run() {
-                        mHandler.sendEmptyMessage(SHOWPROGRESS);
-                        FileUtils.delete(file);
-                        mFileList.remove(file);
-                        Message msg = new Message();
-                        msg.what = TOAST;
-                        msg.obj = file.getName() + getString(R.string.deleted);
-                        mHandler.sendMessage(msg);
-                        mHandler.sendEmptyMessage(DISMISSPROGRESS);
-                    }
-                }).start();
-            }
+        alert.setPositiveButton(R.string.btn_yes, (dialog, whichButton) -> {
+            new Thread(() -> {
+                mHandler.sendEmptyMessage(SHOWPROGRESS);
+                FileUtils.delete(file);
+                mFileList.remove(file);
+                Message msg = new Message();
+                msg.what = TOAST;
+                msg.obj = file.getName() + getString(R.string.deleted);
+                mHandler.sendMessage(msg);
+                mHandler.sendEmptyMessage(DISMISSPROGRESS);
+            }).start();
         });
         alert.setNegativeButton(R.string.btn_no, null);
         alert.show();
+    }
+
+    private void openModernFileBrowser() {
+        Intent intent = new Intent(this, ModernFileBrowserActivity.class);
+        startActivity(intent);
     }
 
     private void newFolder() {
@@ -1374,27 +1242,25 @@ public class ZGNBManagerMain extends AppCompatActivity {
         final AlertDialog.Builder alert = new AlertDialog.Builder(this);
         alert.setTitle(R.string.add_folder);
         alert.setView(folderName);
-        alert.setPositiveButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int whichButton) {
-                String name = folderName.getText().toString();
-                if(name.length() == 0) {
-                    toast(getString(R.string.directory_empty));
-                    return;
-                } else {
-                    for(File f : mFileList) {
-                        if(f.getName().equals(name)) {
-                            toast(String.format(getString(R.string.directory_exists, name)));
-                            return;
-                        }
+        alert.setPositiveButton(R.string.btn_ok, (dialog, whichButton) -> {
+            String name = folderName.getText().toString();
+            if(name.length() == 0) {
+                toast(getString(R.string.directory_empty));
+                return;
+            } else {
+                for(File f : mFileList) {
+                    if(f.getName().equals(name)) {
+                        toast(String.format(getString(R.string.directory_exists, name)));
+                        return;
                     }
                 }
-                File dir = new File(mCurrentDir, name);
-                if(!dir.mkdirs())
-                    toast(String.format(getString(R.string.directory_cannot_create), name));
-                else
-                    toast(String.format(getString(R.string.directory_created), name));
-                mAdapter.notifyDataSetInvalidated();
             }
+            File dir = new File(mCurrentDir, name);
+            if(!dir.mkdirs())
+                toast(String.format(getString(R.string.directory_cannot_create), name));
+            else
+                toast(String.format(getString(R.string.directory_created), name));
+            mAdapter.notifyDataSetInvalidated();
         });
         alert.setNegativeButton(R.string.btn_cancel, null);
         alert.show();
@@ -1406,24 +1272,22 @@ public class ZGNBManagerMain extends AppCompatActivity {
         AlertDialog.Builder alert = new AlertDialog.Builder(this);
         alert.setTitle(R.string.rename);
         alert.setView(newName);
-        alert.setPositiveButton(R.string.btn_ok, new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int whichButton) {
-                String name = newName.getText().toString();
-                if(name.length() == 0) {
-                    toast(getString(R.string.name_empty));
-                    return;
-                } else {
-                    for(File f : mFileList) {
-                        if(f.getName().equals(name)) {
-                            toast(String.format(getString(R.string.file_exists), name));
-                            return;
-                        }
+        alert.setPositiveButton(R.string.btn_ok, (dialog, whichButton) -> {
+            String name = newName.getText().toString();
+            if(name.length() == 0) {
+                toast(getString(R.string.name_empty));
+                return;
+            } else {
+                for(File f : mFileList) {
+                    if(f.getName().equals(name)) {
+                        toast(String.format(getString(R.string.file_exists), name));
+                        return;
                     }
                 }
-                if(!FileUtils.rename(file, name))
-                    toast(String.format(getString(R.string.cannot_rename), file.getPath()));
-                mAdapter.notifyDataSetInvalidated();
             }
+            if(!FileUtils.rename(file, name))
+                toast(String.format(getString(R.string.cannot_rename), file.getPath()));
+            mAdapter.notifyDataSetInvalidated();
         });
         alert.setNegativeButton(R.string.btn_cancel, null);
         alert.show();
@@ -1431,8 +1295,7 @@ public class ZGNBManagerMain extends AppCompatActivity {
 
     private Drawable showApkIcon(String apkPath) {
         PackageManager pm = this.getPackageManager();
-        PackageInfo info = pm.getPackageArchiveInfo(apkPath,
-                           PackageManager.GET_ACTIVITIES);
+        PackageInfo info = pm.getPackageArchiveInfo(apkPath, PackageManager.GET_ACTIVITIES);
         if(info != null) {
             ApplicationInfo appInfo = info.applicationInfo;
             appInfo.sourceDir = apkPath;
@@ -1440,7 +1303,7 @@ public class ZGNBManagerMain extends AppCompatActivity {
             try {
                 return appInfo.loadIcon(pm);
             } catch(OutOfMemoryError e) {
-                e.printStackTrace();
+                Log.e(TAG, "showApkIcon out of memory", e);
             }
         }
         return getResources().getDrawable(R.drawable.android);
@@ -1450,7 +1313,7 @@ public class ZGNBManagerMain extends AppCompatActivity {
 
         protected final Context mContext;
         protected final LayoutInflater mInflater;
-        private SimpleDateFormat format = new SimpleDateFormat("yy-MM-dd HH:mm:ss");
+        private final SimpleDateFormat format = new SimpleDateFormat("yy-MM-dd HH:mm:ss");
         AsyncImageLoader asyn = new AsyncImageLoader();
 
         public FileListAdapter(Context context) {
@@ -1471,40 +1334,36 @@ public class ZGNBManagerMain extends AppCompatActivity {
         }
 
         private String permRwx(int perm) {
-            String result;
-            result = ((perm & 04) != 0 ? "r" : "-") + ((perm & 02) != 0 ? "w" : "-") + ((perm & 1) != 0 ? "x" : "-");
-            return result;
+            return ((perm & 04) != 0 ? "r" : "-") + ((perm & 02) != 0 ? "w" : "-") + ((perm & 1) != 0 ? "x" : "-");
         }
 
         private String permFileType(int perm) {
             String result = "?";
             switch(perm & S_IFMT) {
-            case S_IFLNK:
-                result = "l";
-                break; /* symbolic link */
-            case S_IFREG:
-                result = "-";
-                break; /* regular */
-            case S_IFBLK:
-                result = "b";
-                break; /* block special */
-            case S_IFDIR:
-                result = "d";
-                break; /* directory */
-            case S_IFCHR:
-                result = "c";
-                break; /* character special */
-            case S_IFIFO:
-                result = "p";
-                break; /* this is a FIFO */
+                case S_IFLNK:
+                    result = "l";
+                    break;
+                case S_IFREG:
+                    result = "-";
+                    break;
+                case S_IFBLK:
+                    result = "b";
+                    break;
+                case S_IFDIR:
+                    result = "d";
+                    break;
+                case S_IFCHR:
+                    result = "c";
+                    break;
+                case S_IFIFO:
+                    result = "p";
+                    break;
             }
             return result;
         }
 
         public String permString(int perms) {
-            String result;
-            result = permFileType(perms) + permRwx(perms >> 6) + permRwx(perms >> 3) + permRwx(perms);
-            return result;
+            return permFileType(perms) + permRwx(perms >> 6) + permRwx(perms >> 3) + permRwx(perms);
         }
 
         public View getView(int position, View convertView, ViewGroup parent) {
@@ -1519,11 +1378,7 @@ public class ZGNBManagerMain extends AppCompatActivity {
             if(file.isDirectory())
                 icon.setImageResource(R.drawable.folder);
             else if(name.endsWith(".apk")) {
-                Drawable drawable = asyn.loadDrawable(file.getAbsolutePath(), icon, new ImageCallback() {
-                    public void imageLoaded(Drawable drawable, ImageView imageView) {
-                        icon.setImageDrawable(drawable);
-                    }
-                });
+                Drawable drawable = asyn.loadDrawable(file.getAbsolutePath(), icon, drawable1 -> icon.setImageDrawable(drawable1));
                 icon.setImageDrawable(drawable);
             } else if(name.endsWith(".png") || name.endsWith(".jpg"))
                 icon.setImageResource(R.drawable.image);
@@ -1610,11 +1465,7 @@ public class ZGNBManagerMain extends AppCompatActivity {
     }
 
     public class AsyncImageLoader {
-        private HashMap<String, SoftReference<Drawable>> imageCache;
-
-        public AsyncImageLoader() {
-            imageCache = new HashMap<String, SoftReference<Drawable>>();
-        }
+        private final HashMap<String, SoftReference<Drawable>> imageCache = new HashMap<>();
 
         public Drawable loadDrawable(final String imageUrl, final ImageView imageView,
                                      final ImageCallback imageCallback) {
@@ -1632,7 +1483,7 @@ public class ZGNBManagerMain extends AppCompatActivity {
             new Thread() {
                 public void run() {
                     Drawable drawable = showApkIcon(imageUrl);
-                    imageCache.put(imageUrl, new SoftReference<Drawable>(drawable));
+                    imageCache.put(imageUrl, new SoftReference<>(drawable));
                     Message message = handler.obtainMessage(0, drawable);
                     handler.sendMessage(message);
                 }
@@ -1641,8 +1492,7 @@ public class ZGNBManagerMain extends AppCompatActivity {
         }
     }
 
-    public static interface ImageCallback {
-        public void imageLoaded(Drawable imageDrawable, ImageView imageView);
+    public interface ImageCallback {
+        void imageLoaded(Drawable imageDrawable, ImageView imageView);
     }
-
 }
